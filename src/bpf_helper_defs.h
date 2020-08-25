@@ -2,6 +2,7 @@
 
 /* Forward declarations of BPF structs */
 struct bpf_fib_lookup;
+struct bpf_sk_lookup;
 struct bpf_perf_event_data;
 struct bpf_perf_event_value;
 struct bpf_pidns_info;
@@ -19,6 +20,12 @@ struct sk_reuseport_md;
 struct sockaddr;
 struct tcphdr;
 struct seq_file;
+struct tcp6_sock;
+struct tcp_sock;
+struct tcp_timewait_sock;
+struct tcp_request_sock;
+struct udp6_sock;
+struct task_struct;
 struct __sk_buff;
 struct sk_msg_md;
 struct xdp_md;
@@ -54,7 +61,7 @@ static void *(*bpf_map_lookup_elem)(void *map, const void *key) = (void *) 1;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_map_update_elem)(void *map, const void *key, const void *value, __u64 flags) = (void *) 2;
+static long (*bpf_map_update_elem)(void *map, const void *key, const void *value, __u64 flags) = (void *) 2;
 
 /*
  * bpf_map_delete_elem
@@ -64,7 +71,7 @@ static int (*bpf_map_update_elem)(void *map, const void *key, const void *value,
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_map_delete_elem)(void *map, const void *key) = (void *) 3;
+static long (*bpf_map_delete_elem)(void *map, const void *key) = (void *) 3;
 
 /*
  * bpf_probe_read
@@ -78,7 +85,7 @@ static int (*bpf_map_delete_elem)(void *map, const void *key) = (void *) 3;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_probe_read)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 4;
+static long (*bpf_probe_read)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 4;
 
 /*
  * bpf_ktime_get_ns
@@ -143,7 +150,7 @@ static __u64 (*bpf_ktime_get_ns)(void) = (void *) 5;
  *
  * 	Also, note that **bpf_trace_printk**\ () is slow, and should
  * 	only be used for debugging purposes. For this reason, a notice
- * 	bloc (spanning several lines) is printed to kernel logs and
+ * 	block (spanning several lines) is printed to kernel logs and
  * 	states that the helper should not be used "for production use"
  * 	the first time this helper is used (or more precisely, when
  * 	**trace_printk**\ () buffers are allocated). For passing values
@@ -153,7 +160,7 @@ static __u64 (*bpf_ktime_get_ns)(void) = (void *) 5;
  * 	The number of bytes written to the buffer, or a negative error
  * 	in case of failure.
  */
-static int (*bpf_trace_printk)(const char *fmt, __u32 fmt_size, ...) = (void *) 6;
+static long (*bpf_trace_printk)(const char *fmt, __u32 fmt_size, ...) = (void *) 6;
 
 /*
  * bpf_get_prandom_u32
@@ -203,7 +210,7 @@ static __u32 (*bpf_get_smp_processor_id)(void) = (void *) 8;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_store_bytes)(struct __sk_buff *skb, __u32 offset, const void *from, __u32 len, __u64 flags) = (void *) 9;
+static long (*bpf_skb_store_bytes)(struct __sk_buff *skb, __u32 offset, const void *from, __u32 len, __u64 flags) = (void *) 9;
 
 /*
  * bpf_l3_csum_replace
@@ -232,7 +239,7 @@ static int (*bpf_skb_store_bytes)(struct __sk_buff *skb, __u32 offset, const voi
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_l3_csum_replace)(struct __sk_buff *skb, __u32 offset, __u64 from, __u64 to, __u64 size) = (void *) 10;
+static long (*bpf_l3_csum_replace)(struct __sk_buff *skb, __u32 offset, __u64 from, __u64 to, __u64 size) = (void *) 10;
 
 /*
  * bpf_l4_csum_replace
@@ -268,7 +275,7 @@ static int (*bpf_l3_csum_replace)(struct __sk_buff *skb, __u32 offset, __u64 fro
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_l4_csum_replace)(struct __sk_buff *skb, __u32 offset, __u64 from, __u64 to, __u64 flags) = (void *) 11;
+static long (*bpf_l4_csum_replace)(struct __sk_buff *skb, __u32 offset, __u64 from, __u64 to, __u64 flags) = (void *) 11;
 
 /*
  * bpf_tail_call
@@ -303,7 +310,7 @@ static int (*bpf_l4_csum_replace)(struct __sk_buff *skb, __u32 offset, __u64 fro
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_tail_call)(void *ctx, void *prog_array_map, __u32 index) = (void *) 12;
+static long (*bpf_tail_call)(void *ctx, void *prog_array_map, __u32 index) = (void *) 12;
 
 /*
  * bpf_clone_redirect
@@ -331,7 +338,7 @@ static int (*bpf_tail_call)(void *ctx, void *prog_array_map, __u32 index) = (voi
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_clone_redirect)(struct __sk_buff *skb, __u32 ifindex, __u64 flags) = (void *) 13;
+static long (*bpf_clone_redirect)(struct __sk_buff *skb, __u32 ifindex, __u64 flags) = (void *) 13;
 
 /*
  * bpf_get_current_pid_tgid
@@ -368,7 +375,7 @@ static __u64 (*bpf_get_current_uid_gid)(void) = (void *) 15;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_get_current_comm)(void *buf, __u32 size_of_buf) = (void *) 16;
+static long (*bpf_get_current_comm)(void *buf, __u32 size_of_buf) = (void *) 16;
 
 /*
  * bpf_get_cgroup_classid
@@ -418,7 +425,7 @@ static __u32 (*bpf_get_cgroup_classid)(struct __sk_buff *skb) = (void *) 17;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_vlan_push)(struct __sk_buff *skb, __be16 vlan_proto, __u16 vlan_tci) = (void *) 18;
+static long (*bpf_skb_vlan_push)(struct __sk_buff *skb, __be16 vlan_proto, __u16 vlan_tci) = (void *) 18;
 
 /*
  * bpf_skb_vlan_pop
@@ -434,7 +441,7 @@ static int (*bpf_skb_vlan_push)(struct __sk_buff *skb, __be16 vlan_proto, __u16 
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_vlan_pop)(struct __sk_buff *skb) = (void *) 19;
+static long (*bpf_skb_vlan_pop)(struct __sk_buff *skb) = (void *) 19;
 
 /*
  * bpf_skb_get_tunnel_key
@@ -467,14 +474,14 @@ static int (*bpf_skb_vlan_pop)(struct __sk_buff *skb) = (void *) 19;
  *
  * 		int ret;
  * 		struct bpf_tunnel_key key = {};
- * 		
+ *
  * 		ret = bpf_skb_get_tunnel_key(skb, &key, sizeof(key), 0);
  * 		if (ret < 0)
  * 			return TC_ACT_SHOT;	// drop packet
- * 		
+ *
  * 		if (key.remote_ipv4 != 0x0a000001)
  * 			return TC_ACT_SHOT;	// drop packet
- * 		
+ *
  * 		return TC_ACT_OK;		// accept packet
  *
  * 	This interface can also be used with all encapsulation devices
@@ -489,7 +496,7 @@ static int (*bpf_skb_vlan_pop)(struct __sk_buff *skb) = (void *) 19;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_get_tunnel_key)(struct __sk_buff *skb, struct bpf_tunnel_key *key, __u32 size, __u64 flags) = (void *) 20;
+static long (*bpf_skb_get_tunnel_key)(struct __sk_buff *skb, struct bpf_tunnel_key *key, __u32 size, __u64 flags) = (void *) 20;
 
 /*
  * bpf_skb_set_tunnel_key
@@ -530,7 +537,7 @@ static int (*bpf_skb_get_tunnel_key)(struct __sk_buff *skb, struct bpf_tunnel_ke
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_set_tunnel_key)(struct __sk_buff *skb, struct bpf_tunnel_key *key, __u32 size, __u64 flags) = (void *) 21;
+static long (*bpf_skb_set_tunnel_key)(struct __sk_buff *skb, struct bpf_tunnel_key *key, __u32 size, __u64 flags) = (void *) 21;
 
 /*
  * bpf_perf_event_read
@@ -590,14 +597,14 @@ static __u64 (*bpf_perf_event_read)(void *map, __u64 flags) = (void *) 22;
  * 	are **TC_ACT_REDIRECT** on success or **TC_ACT_SHOT** on
  * 	error.
  */
-static int (*bpf_redirect)(__u32 ifindex, __u64 flags) = (void *) 23;
+static long (*bpf_redirect)(__u32 ifindex, __u64 flags) = (void *) 23;
 
 /*
  * bpf_get_route_realm
  *
  * 	Retrieve the realm or the route, that is to say the
  * 	**tclassid** field of the destination for the *skb*. The
- * 	indentifier retrieved is a user-provided tag, similar to the
+ * 	identifier retrieved is a user-provided tag, similar to the
  * 	one used with the net_cls cgroup (see description for
  * 	**bpf_get_cgroup_classid**\ () helper), but here this tag is
  * 	held by a route (a destination entry), not by a task.
@@ -667,7 +674,7 @@ static __u32 (*bpf_get_route_realm)(struct __sk_buff *skb) = (void *) 24;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_perf_event_output)(void *ctx, void *map, __u64 flags, void *data, __u64 size) = (void *) 25;
+static long (*bpf_perf_event_output)(void *ctx, void *map, __u64 flags, void *data, __u64 size) = (void *) 25;
 
 /*
  * bpf_skb_load_bytes
@@ -688,7 +695,7 @@ static int (*bpf_perf_event_output)(void *ctx, void *map, __u64 flags, void *dat
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_load_bytes)(const void *skb, __u32 offset, void *to, __u32 len) = (void *) 26;
+static long (*bpf_skb_load_bytes)(const void *skb, __u32 offset, void *to, __u32 len) = (void *) 26;
 
 /*
  * bpf_get_stackid
@@ -734,7 +741,7 @@ static int (*bpf_skb_load_bytes)(const void *skb, __u32 offset, void *to, __u32 
  * 	The positive or null stack id on success, or a negative error
  * 	in case of failure.
  */
-static int (*bpf_get_stackid)(void *ctx, void *map, __u64 flags) = (void *) 27;
+static long (*bpf_get_stackid)(void *ctx, void *map, __u64 flags) = (void *) 27;
 
 /*
  * bpf_csum_diff
@@ -787,7 +794,7 @@ static __s64 (*bpf_csum_diff)(__be32 *from, __u32 from_size, __be32 *to, __u32 t
  * Returns
  * 	The size of the option data retrieved.
  */
-static int (*bpf_skb_get_tunnel_opt)(struct __sk_buff *skb, void *opt, __u32 size) = (void *) 29;
+static long (*bpf_skb_get_tunnel_opt)(struct __sk_buff *skb, void *opt, __u32 size) = (void *) 29;
 
 /*
  * bpf_skb_set_tunnel_opt
@@ -801,7 +808,7 @@ static int (*bpf_skb_get_tunnel_opt)(struct __sk_buff *skb, void *opt, __u32 siz
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_set_tunnel_opt)(struct __sk_buff *skb, void *opt, __u32 size) = (void *) 30;
+static long (*bpf_skb_set_tunnel_opt)(struct __sk_buff *skb, void *opt, __u32 size) = (void *) 30;
 
 /*
  * bpf_skb_change_proto
@@ -832,7 +839,7 @@ static int (*bpf_skb_set_tunnel_opt)(struct __sk_buff *skb, void *opt, __u32 siz
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_change_proto)(struct __sk_buff *skb, __be16 proto, __u64 flags) = (void *) 31;
+static long (*bpf_skb_change_proto)(struct __sk_buff *skb, __be16 proto, __u64 flags) = (void *) 31;
 
 /*
  * bpf_skb_change_type
@@ -863,7 +870,7 @@ static int (*bpf_skb_change_proto)(struct __sk_buff *skb, __be16 proto, __u64 fl
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_change_type)(struct __sk_buff *skb, __u32 type) = (void *) 32;
+static long (*bpf_skb_change_type)(struct __sk_buff *skb, __u32 type) = (void *) 32;
 
 /*
  * bpf_skb_under_cgroup
@@ -878,7 +885,7 @@ static int (*bpf_skb_change_type)(struct __sk_buff *skb, __u32 type) = (void *) 
  * 	* 1, if the *skb* succeeded the cgroup2 descendant test.
  * 	* A negative error code, if an error occurred.
  */
-static int (*bpf_skb_under_cgroup)(struct __sk_buff *skb, void *map, __u32 index) = (void *) 33;
+static long (*bpf_skb_under_cgroup)(struct __sk_buff *skb, void *map, __u32 index) = (void *) 33;
 
 /*
  * bpf_get_hash_recalc
@@ -930,7 +937,7 @@ static __u64 (*bpf_get_current_task)(void) = (void *) 35;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_probe_write_user)(void *dst, const void *src, __u32 len) = (void *) 36;
+static long (*bpf_probe_write_user)(void *dst, const void *src, __u32 len) = (void *) 36;
 
 /*
  * bpf_current_task_under_cgroup
@@ -946,7 +953,7 @@ static int (*bpf_probe_write_user)(void *dst, const void *src, __u32 len) = (voi
  * 	* 1, if the *skb* task does not belong to the cgroup2.
  * 	* A negative error code, if an error occurred.
  */
-static int (*bpf_current_task_under_cgroup)(void *map, __u32 index) = (void *) 37;
+static long (*bpf_current_task_under_cgroup)(void *map, __u32 index) = (void *) 37;
 
 /*
  * bpf_skb_change_tail
@@ -974,7 +981,7 @@ static int (*bpf_current_task_under_cgroup)(void *map, __u32 index) = (void *) 3
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_change_tail)(struct __sk_buff *skb, __u32 len, __u64 flags) = (void *) 38;
+static long (*bpf_skb_change_tail)(struct __sk_buff *skb, __u32 len, __u64 flags) = (void *) 38;
 
 /*
  * bpf_skb_pull_data
@@ -1014,7 +1021,7 @@ static int (*bpf_skb_change_tail)(struct __sk_buff *skb, __u32 len, __u64 flags)
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_pull_data)(struct __sk_buff *skb, __u32 len) = (void *) 39;
+static long (*bpf_skb_pull_data)(struct __sk_buff *skb, __u32 len) = (void *) 39;
 
 /*
  * bpf_csum_update
@@ -1057,7 +1064,7 @@ static void (*bpf_set_hash_invalid)(struct __sk_buff *skb) = (void *) 41;
  * Returns
  * 	The id of current NUMA node.
  */
-static int (*bpf_get_numa_node_id)(void) = (void *) 42;
+static long (*bpf_get_numa_node_id)(void) = (void *) 42;
 
 /*
  * bpf_skb_change_head
@@ -1082,7 +1089,7 @@ static int (*bpf_get_numa_node_id)(void) = (void *) 42;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_change_head)(struct __sk_buff *skb, __u32 len, __u64 flags) = (void *) 43;
+static long (*bpf_skb_change_head)(struct __sk_buff *skb, __u32 len, __u64 flags) = (void *) 43;
 
 /*
  * bpf_xdp_adjust_head
@@ -1101,7 +1108,7 @@ static int (*bpf_skb_change_head)(struct __sk_buff *skb, __u32 len, __u64 flags)
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_xdp_adjust_head)(struct xdp_md *xdp_md, int delta) = (void *) 44;
+static long (*bpf_xdp_adjust_head)(struct xdp_md *xdp_md, int delta) = (void *) 44;
 
 /*
  * bpf_probe_read_str
@@ -1118,7 +1125,7 @@ static int (*bpf_xdp_adjust_head)(struct xdp_md *xdp_md, int delta) = (void *) 4
  * 	including the trailing NUL character. On error, a negative
  * 	value.
  */
-static int (*bpf_probe_read_str)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 45;
+static long (*bpf_probe_read_str)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 45;
 
 /*
  * bpf_get_socket_cookie
@@ -1159,7 +1166,7 @@ static __u32 (*bpf_get_socket_uid)(struct __sk_buff *skb) = (void *) 47;
  * Returns
  * 	0
  */
-static __u32 (*bpf_set_hash)(struct __sk_buff *skb, __u32 hash) = (void *) 48;
+static long (*bpf_set_hash)(struct __sk_buff *skb, __u32 hash) = (void *) 48;
 
 /*
  * bpf_setsockopt
@@ -1181,23 +1188,33 @@ static __u32 (*bpf_set_hash)(struct __sk_buff *skb, __u32 hash) = (void *) 48;
  *
  * 	* **SOL_SOCKET**, which supports the following *optname*\ s:
  * 	  **SO_RCVBUF**, **SO_SNDBUF**, **SO_MAX_PACING_RATE**,
- * 	  **SO_PRIORITY**, **SO_RCVLOWAT**, **SO_MARK**.
+ * 	  **SO_PRIORITY**, **SO_RCVLOWAT**, **SO_MARK**,
+ * 	  **SO_BINDTODEVICE**, **SO_KEEPALIVE**.
  * 	* **IPPROTO_TCP**, which supports the following *optname*\ s:
  * 	  **TCP_CONGESTION**, **TCP_BPF_IW**,
- * 	  **TCP_BPF_SNDCWND_CLAMP**.
+ * 	  **TCP_BPF_SNDCWND_CLAMP**, **TCP_SAVE_SYN**,
+ * 	  **TCP_KEEPIDLE**, **TCP_KEEPINTVL**, **TCP_KEEPCNT**,
+ * 	  **TCP_SYNCNT**, **TCP_USER_TIMEOUT**.
  * 	* **IPPROTO_IP**, which supports *optname* **IP_TOS**.
  * 	* **IPPROTO_IPV6**, which supports *optname* **IPV6_TCLASS**.
  *
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_setsockopt)(void *bpf_socket, int level, int optname, void *optval, int optlen) = (void *) 49;
+static long (*bpf_setsockopt)(void *bpf_socket, int level, int optname, void *optval, int optlen) = (void *) 49;
 
 /*
  * bpf_skb_adjust_room
  *
  * 	Grow or shrink the room for data in the packet associated to
  * 	*skb* by *len_diff*, and according to the selected *mode*.
+ *
+ * 	By default, the helper will reset any offloaded checksum
+ * 	indicator of the skb to CHECKSUM_NONE. This can be avoided
+ * 	by the following flag:
+ *
+ * 	* **BPF_F_ADJ_ROOM_NO_CSUM_RESET**: Do not reset offloaded
+ * 	  checksum data of the skb to CHECKSUM_NONE.
  *
  * 	There are two supported modes at this time:
  *
@@ -1234,7 +1251,7 @@ static int (*bpf_setsockopt)(void *bpf_socket, int level, int optname, void *opt
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_adjust_room)(struct __sk_buff *skb, __s32 len_diff, __u32 mode, __u64 flags) = (void *) 50;
+static long (*bpf_skb_adjust_room)(struct __sk_buff *skb, __s32 len_diff, __u32 mode, __u64 flags) = (void *) 50;
 
 /*
  * bpf_redirect_map
@@ -1259,7 +1276,7 @@ static int (*bpf_skb_adjust_room)(struct __sk_buff *skb, __s32 len_diff, __u32 m
  * 	**XDP_REDIRECT** on success, or the value of the two lower bits
  * 	of the *flags* argument on error.
  */
-static int (*bpf_redirect_map)(void *map, __u32 key, __u64 flags) = (void *) 51;
+static long (*bpf_redirect_map)(void *map, __u32 key, __u64 flags) = (void *) 51;
 
 /*
  * bpf_sk_redirect_map
@@ -1274,7 +1291,7 @@ static int (*bpf_redirect_map)(void *map, __u32 key, __u64 flags) = (void *) 51;
  * Returns
  * 	**SK_PASS** on success, or **SK_DROP** on error.
  */
-static int (*bpf_sk_redirect_map)(struct __sk_buff *skb, void *map, __u32 key, __u64 flags) = (void *) 52;
+static long (*bpf_sk_redirect_map)(struct __sk_buff *skb, void *map, __u32 key, __u64 flags) = (void *) 52;
 
 /*
  * bpf_sock_map_update
@@ -1297,7 +1314,7 @@ static int (*bpf_sk_redirect_map)(struct __sk_buff *skb, void *map, __u32 key, _
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_sock_map_update)(struct bpf_sock_ops *skops, void *map, void *key, __u64 flags) = (void *) 53;
+static long (*bpf_sock_map_update)(struct bpf_sock_ops *skops, void *map, void *key, __u64 flags) = (void *) 53;
 
 /*
  * bpf_xdp_adjust_meta
@@ -1330,7 +1347,7 @@ static int (*bpf_sock_map_update)(struct bpf_sock_ops *skops, void *map, void *k
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_xdp_adjust_meta)(struct xdp_md *xdp_md, int delta) = (void *) 54;
+static long (*bpf_xdp_adjust_meta)(struct xdp_md *xdp_md, int delta) = (void *) 54;
 
 /*
  * bpf_perf_event_read_value
@@ -1384,7 +1401,7 @@ static int (*bpf_xdp_adjust_meta)(struct xdp_md *xdp_md, int delta) = (void *) 5
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_perf_event_read_value)(void *map, __u64 flags, struct bpf_perf_event_value *buf, __u32 buf_size) = (void *) 55;
+static long (*bpf_perf_event_read_value)(void *map, __u64 flags, struct bpf_perf_event_value *buf, __u32 buf_size) = (void *) 55;
 
 /*
  * bpf_perf_prog_read_value
@@ -1399,7 +1416,7 @@ static int (*bpf_perf_event_read_value)(void *map, __u64 flags, struct bpf_perf_
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_perf_prog_read_value)(struct bpf_perf_event_data *ctx, struct bpf_perf_event_value *buf, __u32 buf_size) = (void *) 56;
+static long (*bpf_perf_prog_read_value)(struct bpf_perf_event_data *ctx, struct bpf_perf_event_value *buf, __u32 buf_size) = (void *) 56;
 
 /*
  * bpf_getsockopt
@@ -1428,7 +1445,7 @@ static int (*bpf_perf_prog_read_value)(struct bpf_perf_event_data *ctx, struct b
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_getsockopt)(void *bpf_socket, int level, int optname, void *optval, int optlen) = (void *) 57;
+static long (*bpf_getsockopt)(void *bpf_socket, int level, int optname, void *optval, int optlen) = (void *) 57;
 
 /*
  * bpf_override_return
@@ -1457,7 +1474,7 @@ static int (*bpf_getsockopt)(void *bpf_socket, int level, int optname, void *opt
  * Returns
  * 	0
  */
-static int (*bpf_override_return)(struct pt_regs *regs, __u64 rc) = (void *) 58;
+static long (*bpf_override_return)(struct pt_regs *regs, __u64 rc) = (void *) 58;
 
 /*
  * bpf_sock_ops_cb_flags_set
@@ -1505,7 +1522,7 @@ static int (*bpf_override_return)(struct pt_regs *regs, __u64 rc) = (void *) 58;
  * 	be set is returned (which comes down to 0 if all bits were set
  * 	as required).
  */
-static int (*bpf_sock_ops_cb_flags_set)(struct bpf_sock_ops *bpf_sock, int argval) = (void *) 59;
+static long (*bpf_sock_ops_cb_flags_set)(struct bpf_sock_ops *bpf_sock, int argval) = (void *) 59;
 
 /*
  * bpf_msg_redirect_map
@@ -1523,7 +1540,7 @@ static int (*bpf_sock_ops_cb_flags_set)(struct bpf_sock_ops *bpf_sock, int argva
  * Returns
  * 	**SK_PASS** on success, or **SK_DROP** on error.
  */
-static int (*bpf_msg_redirect_map)(struct sk_msg_md *msg, void *map, __u32 key, __u64 flags) = (void *) 60;
+static long (*bpf_msg_redirect_map)(struct sk_msg_md *msg, void *map, __u32 key, __u64 flags) = (void *) 60;
 
 /*
  * bpf_msg_apply_bytes
@@ -1561,7 +1578,7 @@ static int (*bpf_msg_redirect_map)(struct sk_msg_md *msg, void *map, __u32 key, 
  * Returns
  * 	0
  */
-static int (*bpf_msg_apply_bytes)(struct sk_msg_md *msg, __u32 bytes) = (void *) 61;
+static long (*bpf_msg_apply_bytes)(struct sk_msg_md *msg, __u32 bytes) = (void *) 61;
 
 /*
  * bpf_msg_cork_bytes
@@ -1583,7 +1600,7 @@ static int (*bpf_msg_apply_bytes)(struct sk_msg_md *msg, __u32 bytes) = (void *)
  * Returns
  * 	0
  */
-static int (*bpf_msg_cork_bytes)(struct sk_msg_md *msg, __u32 bytes) = (void *) 62;
+static long (*bpf_msg_cork_bytes)(struct sk_msg_md *msg, __u32 bytes) = (void *) 62;
 
 /*
  * bpf_msg_pull_data
@@ -1618,7 +1635,7 @@ static int (*bpf_msg_cork_bytes)(struct sk_msg_md *msg, __u32 bytes) = (void *) 
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_msg_pull_data)(struct sk_msg_md *msg, __u32 start, __u32 end, __u64 flags) = (void *) 63;
+static long (*bpf_msg_pull_data)(struct sk_msg_md *msg, __u32 start, __u32 end, __u64 flags) = (void *) 63;
 
 /*
  * bpf_bind
@@ -1640,7 +1657,7 @@ static int (*bpf_msg_pull_data)(struct sk_msg_md *msg, __u32 start, __u32 end, _
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_bind)(struct bpf_sock_addr *ctx, struct sockaddr *addr, int addr_len) = (void *) 64;
+static long (*bpf_bind)(struct bpf_sock_addr *ctx, struct sockaddr *addr, int addr_len) = (void *) 64;
 
 /*
  * bpf_xdp_adjust_tail
@@ -1658,7 +1675,7 @@ static int (*bpf_bind)(struct bpf_sock_addr *ctx, struct sockaddr *addr, int add
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_xdp_adjust_tail)(struct xdp_md *xdp_md, int delta) = (void *) 65;
+static long (*bpf_xdp_adjust_tail)(struct xdp_md *xdp_md, int delta) = (void *) 65;
 
 /*
  * bpf_skb_get_xfrm_state
@@ -1678,7 +1695,7 @@ static int (*bpf_xdp_adjust_tail)(struct xdp_md *xdp_md, int delta) = (void *) 6
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_get_xfrm_state)(struct __sk_buff *skb, __u32 index, struct bpf_xfrm_state *xfrm_state, __u32 size, __u64 flags) = (void *) 66;
+static long (*bpf_skb_get_xfrm_state)(struct __sk_buff *skb, __u32 index, struct bpf_xfrm_state *xfrm_state, __u32 size, __u64 flags) = (void *) 66;
 
 /*
  * bpf_get_stack
@@ -1715,7 +1732,7 @@ static int (*bpf_skb_get_xfrm_state)(struct __sk_buff *skb, __u32 index, struct 
  * 	A non-negative value equal to or less than *size* on success,
  * 	or a negative error in case of failure.
  */
-static int (*bpf_get_stack)(void *ctx, void *buf, __u32 size, __u64 flags) = (void *) 67;
+static long (*bpf_get_stack)(void *ctx, void *buf, __u32 size, __u64 flags) = (void *) 67;
 
 /*
  * bpf_skb_load_bytes_relative
@@ -1741,7 +1758,7 @@ static int (*bpf_get_stack)(void *ctx, void *buf, __u32 size, __u64 flags) = (vo
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_load_bytes_relative)(const void *skb, __u32 offset, void *to, __u32 len, __u32 start_header) = (void *) 68;
+static long (*bpf_skb_load_bytes_relative)(const void *skb, __u32 offset, void *to, __u32 len, __u32 start_header) = (void *) 68;
 
 /*
  * bpf_fib_lookup
@@ -1776,7 +1793,7 @@ static int (*bpf_skb_load_bytes_relative)(const void *skb, __u32 offset, void *t
  * 	* > 0 one of **BPF_FIB_LKUP_RET_** codes explaining why the
  * 	  packet is not forwarded or needs assist from full stack
  */
-static int (*bpf_fib_lookup)(void *ctx, struct bpf_fib_lookup *params, int plen, __u32 flags) = (void *) 69;
+static long (*bpf_fib_lookup)(void *ctx, struct bpf_fib_lookup *params, int plen, __u32 flags) = (void *) 69;
 
 /*
  * bpf_sock_hash_update
@@ -1799,7 +1816,7 @@ static int (*bpf_fib_lookup)(void *ctx, struct bpf_fib_lookup *params, int plen,
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_sock_hash_update)(struct bpf_sock_ops *skops, void *map, void *key, __u64 flags) = (void *) 70;
+static long (*bpf_sock_hash_update)(struct bpf_sock_ops *skops, void *map, void *key, __u64 flags) = (void *) 70;
 
 /*
  * bpf_msg_redirect_hash
@@ -1817,7 +1834,7 @@ static int (*bpf_sock_hash_update)(struct bpf_sock_ops *skops, void *map, void *
  * Returns
  * 	**SK_PASS** on success, or **SK_DROP** on error.
  */
-static int (*bpf_msg_redirect_hash)(struct sk_msg_md *msg, void *map, void *key, __u64 flags) = (void *) 71;
+static long (*bpf_msg_redirect_hash)(struct sk_msg_md *msg, void *map, void *key, __u64 flags) = (void *) 71;
 
 /*
  * bpf_sk_redirect_hash
@@ -1835,7 +1852,7 @@ static int (*bpf_msg_redirect_hash)(struct sk_msg_md *msg, void *map, void *key,
  * Returns
  * 	**SK_PASS** on success, or **SK_DROP** on error.
  */
-static int (*bpf_sk_redirect_hash)(struct __sk_buff *skb, void *map, void *key, __u64 flags) = (void *) 72;
+static long (*bpf_sk_redirect_hash)(struct __sk_buff *skb, void *map, void *key, __u64 flags) = (void *) 72;
 
 /*
  * bpf_lwt_push_encap
@@ -1876,7 +1893,7 @@ static int (*bpf_sk_redirect_hash)(struct __sk_buff *skb, void *map, void *key, 
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_lwt_push_encap)(struct __sk_buff *skb, __u32 type, void *hdr, __u32 len) = (void *) 73;
+static long (*bpf_lwt_push_encap)(struct __sk_buff *skb, __u32 type, void *hdr, __u32 len) = (void *) 73;
 
 /*
  * bpf_lwt_seg6_store_bytes
@@ -1895,7 +1912,7 @@ static int (*bpf_lwt_push_encap)(struct __sk_buff *skb, __u32 type, void *hdr, _
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_lwt_seg6_store_bytes)(struct __sk_buff *skb, __u32 offset, const void *from, __u32 len) = (void *) 74;
+static long (*bpf_lwt_seg6_store_bytes)(struct __sk_buff *skb, __u32 offset, const void *from, __u32 len) = (void *) 74;
 
 /*
  * bpf_lwt_seg6_adjust_srh
@@ -1915,7 +1932,7 @@ static int (*bpf_lwt_seg6_store_bytes)(struct __sk_buff *skb, __u32 offset, cons
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_lwt_seg6_adjust_srh)(struct __sk_buff *skb, __u32 offset, __s32 delta) = (void *) 75;
+static long (*bpf_lwt_seg6_adjust_srh)(struct __sk_buff *skb, __u32 offset, __s32 delta) = (void *) 75;
 
 /*
  * bpf_lwt_seg6_action
@@ -1948,7 +1965,7 @@ static int (*bpf_lwt_seg6_adjust_srh)(struct __sk_buff *skb, __u32 offset, __s32
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_lwt_seg6_action)(struct __sk_buff *skb, __u32 action, void *param, __u32 param_len) = (void *) 76;
+static long (*bpf_lwt_seg6_action)(struct __sk_buff *skb, __u32 action, void *param, __u32 param_len) = (void *) 76;
 
 /*
  * bpf_rc_repeat
@@ -1971,7 +1988,7 @@ static int (*bpf_lwt_seg6_action)(struct __sk_buff *skb, __u32 action, void *par
  * Returns
  * 	0
  */
-static int (*bpf_rc_repeat)(void *ctx) = (void *) 77;
+static long (*bpf_rc_repeat)(void *ctx) = (void *) 77;
 
 /*
  * bpf_rc_keydown
@@ -2001,7 +2018,7 @@ static int (*bpf_rc_repeat)(void *ctx) = (void *) 77;
  * Returns
  * 	0
  */
-static int (*bpf_rc_keydown)(void *ctx, __u32 protocol, __u64 scancode, __u32 toggle) = (void *) 78;
+static long (*bpf_rc_keydown)(void *ctx, __u32 protocol, __u64 scancode, __u32 toggle) = (void *) 78;
 
 /*
  * bpf_skb_cgroup_id
@@ -2066,7 +2083,7 @@ static void *(*bpf_get_local_storage)(void *map, __u64 flags) = (void *) 81;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_sk_select_reuseport)(struct sk_reuseport_md *reuse, void *map, void *key, __u64 flags) = (void *) 82;
+static long (*bpf_sk_select_reuseport)(struct sk_reuseport_md *reuse, void *map, void *key, __u64 flags) = (void *) 82;
 
 /*
  * bpf_skb_ancestor_cgroup_id
@@ -2109,7 +2126,7 @@ static __u64 (*bpf_skb_ancestor_cgroup_id)(struct __sk_buff *skb, int ancestor_l
  * 		Look for an IPv6 socket.
  *
  * 	If the *netns* is a negative signed 32-bit integer, then the
- * 	socket lookup table in the netns associated with the *ctx* will
+ * 	socket lookup table in the netns associated with the *ctx*
  * 	will be used. For the TC hooks, this is the netns of the device
  * 	in the skb. For socket hooks, this is the netns of the socket.
  * 	If *netns* is any other signed 32-bit value greater than or
@@ -2150,7 +2167,7 @@ static struct bpf_sock *(*bpf_sk_lookup_tcp)(void *ctx, struct bpf_sock_tuple *t
  * 		Look for an IPv6 socket.
  *
  * 	If the *netns* is a negative signed 32-bit integer, then the
- * 	socket lookup table in the netns associated with the *ctx* will
+ * 	socket lookup table in the netns associated with the *ctx*
  * 	will be used. For the TC hooks, this is the netns of the device
  * 	in the skb. For socket hooks, this is the netns of the socket.
  * 	If *netns* is any other signed 32-bit value greater than or
@@ -2182,7 +2199,7 @@ static struct bpf_sock *(*bpf_sk_lookup_udp)(void *ctx, struct bpf_sock_tuple *t
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_sk_release)(struct bpf_sock *sock) = (void *) 86;
+static long (*bpf_sk_release)(struct bpf_sock *sock) = (void *) 86;
 
 /*
  * bpf_map_push_elem
@@ -2196,7 +2213,7 @@ static int (*bpf_sk_release)(struct bpf_sock *sock) = (void *) 86;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_map_push_elem)(void *map, const void *value, __u64 flags) = (void *) 87;
+static long (*bpf_map_push_elem)(void *map, const void *value, __u64 flags) = (void *) 87;
 
 /*
  * bpf_map_pop_elem
@@ -2206,7 +2223,7 @@ static int (*bpf_map_push_elem)(void *map, const void *value, __u64 flags) = (vo
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_map_pop_elem)(void *map, void *value) = (void *) 88;
+static long (*bpf_map_pop_elem)(void *map, void *value) = (void *) 88;
 
 /*
  * bpf_map_peek_elem
@@ -2216,7 +2233,7 @@ static int (*bpf_map_pop_elem)(void *map, void *value) = (void *) 88;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_map_peek_elem)(void *map, void *value) = (void *) 89;
+static long (*bpf_map_peek_elem)(void *map, void *value) = (void *) 89;
 
 /*
  * bpf_msg_push_data
@@ -2236,7 +2253,7 @@ static int (*bpf_map_peek_elem)(void *map, void *value) = (void *) 89;
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_msg_push_data)(struct sk_msg_md *msg, __u32 start, __u32 len, __u64 flags) = (void *) 90;
+static long (*bpf_msg_push_data)(struct sk_msg_md *msg, __u32 start, __u32 len, __u64 flags) = (void *) 90;
 
 /*
  * bpf_msg_pop_data
@@ -2252,7 +2269,7 @@ static int (*bpf_msg_push_data)(struct sk_msg_md *msg, __u32 start, __u32 len, _
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_msg_pop_data)(struct sk_msg_md *msg, __u32 start, __u32 len, __u64 flags) = (void *) 91;
+static long (*bpf_msg_pop_data)(struct sk_msg_md *msg, __u32 start, __u32 len, __u64 flags) = (void *) 91;
 
 /*
  * bpf_rc_pointer_rel
@@ -2270,7 +2287,7 @@ static int (*bpf_msg_pop_data)(struct sk_msg_md *msg, __u32 start, __u32 len, __
  * Returns
  * 	0
  */
-static int (*bpf_rc_pointer_rel)(void *ctx, __s32 rel_x, __s32 rel_y) = (void *) 92;
+static long (*bpf_rc_pointer_rel)(void *ctx, __s32 rel_x, __s32 rel_y) = (void *) 92;
 
 /*
  * bpf_spin_lock
@@ -2322,7 +2339,7 @@ static int (*bpf_rc_pointer_rel)(void *ctx, __s32 rel_x, __s32 rel_y) = (void *)
  * Returns
  * 	0
  */
-static int (*bpf_spin_lock)(struct bpf_spin_lock *lock) = (void *) 93;
+static long (*bpf_spin_lock)(struct bpf_spin_lock *lock) = (void *) 93;
 
 /*
  * bpf_spin_unlock
@@ -2333,7 +2350,7 @@ static int (*bpf_spin_lock)(struct bpf_spin_lock *lock) = (void *) 93;
  * Returns
  * 	0
  */
-static int (*bpf_spin_unlock)(struct bpf_spin_lock *lock) = (void *) 94;
+static long (*bpf_spin_unlock)(struct bpf_spin_lock *lock) = (void *) 94;
 
 /*
  * bpf_sk_fullsock
@@ -2371,7 +2388,7 @@ static struct bpf_tcp_sock *(*bpf_tcp_sock)(struct bpf_sock *sk) = (void *) 96;
  * 	1 if the **CE** flag is set (either by the current helper call
  * 	or because it was already present), 0 if it is not set.
  */
-static int (*bpf_skb_ecn_set_ce)(struct __sk_buff *skb) = (void *) 97;
+static long (*bpf_skb_ecn_set_ce)(struct __sk_buff *skb) = (void *) 97;
 
 /*
  * bpf_get_listener_sock
@@ -2425,7 +2442,7 @@ static struct bpf_sock *(*bpf_skc_lookup_tcp)(void *ctx, struct bpf_sock_tuple *
  * 	0 if *iph* and *th* are a valid SYN cookie ACK, or a negative
  * 	error otherwise.
  */
-static int (*bpf_tcp_check_syncookie)(struct bpf_sock *sk, void *iph, __u32 iph_len, struct tcphdr *th, __u32 th_len) = (void *) 100;
+static long (*bpf_tcp_check_syncookie)(struct bpf_sock *sk, void *iph, __u32 iph_len, struct tcphdr *th, __u32 th_len) = (void *) 100;
 
 /*
  * bpf_sysctl_get_name
@@ -2445,7 +2462,7 @@ static int (*bpf_tcp_check_syncookie)(struct bpf_sock *sk, void *iph, __u32 iph_
  * 	**-E2BIG** if the buffer wasn't big enough (*buf* will contain
  * 	truncated name in this case).
  */
-static int (*bpf_sysctl_get_name)(struct bpf_sysctl *ctx, char *buf, unsigned long buf_len, __u64 flags) = (void *) 101;
+static long (*bpf_sysctl_get_name)(struct bpf_sysctl *ctx, char *buf, unsigned long buf_len, __u64 flags) = (void *) 101;
 
 /*
  * bpf_sysctl_get_current_value
@@ -2468,7 +2485,7 @@ static int (*bpf_sysctl_get_name)(struct bpf_sysctl *ctx, char *buf, unsigned lo
  * 	**-EINVAL** if current value was unavailable, e.g. because
  * 	sysctl is uninitialized and read returns -EIO for it.
  */
-static int (*bpf_sysctl_get_current_value)(struct bpf_sysctl *ctx, char *buf, unsigned long buf_len) = (void *) 102;
+static long (*bpf_sysctl_get_current_value)(struct bpf_sysctl *ctx, char *buf, unsigned long buf_len) = (void *) 102;
 
 /*
  * bpf_sysctl_get_new_value
@@ -2489,7 +2506,7 @@ static int (*bpf_sysctl_get_current_value)(struct bpf_sysctl *ctx, char *buf, un
  *
  * 	**-EINVAL** if sysctl is being read.
  */
-static int (*bpf_sysctl_get_new_value)(struct bpf_sysctl *ctx, char *buf, unsigned long buf_len) = (void *) 103;
+static long (*bpf_sysctl_get_new_value)(struct bpf_sysctl *ctx, char *buf, unsigned long buf_len) = (void *) 103;
 
 /*
  * bpf_sysctl_set_new_value
@@ -2510,7 +2527,7 @@ static int (*bpf_sysctl_get_new_value)(struct bpf_sysctl *ctx, char *buf, unsign
  *
  * 	**-EINVAL** if sysctl is being read.
  */
-static int (*bpf_sysctl_set_new_value)(struct bpf_sysctl *ctx, const char *buf, unsigned long buf_len) = (void *) 104;
+static long (*bpf_sysctl_set_new_value)(struct bpf_sysctl *ctx, const char *buf, unsigned long buf_len) = (void *) 104;
 
 /*
  * bpf_strtol
@@ -2538,7 +2555,7 @@ static int (*bpf_sysctl_set_new_value)(struct bpf_sysctl *ctx, const char *buf, 
  *
  * 	**-ERANGE** if resulting value was out of range.
  */
-static int (*bpf_strtol)(const char *buf, unsigned long buf_len, __u64 flags, long *res) = (void *) 105;
+static long (*bpf_strtol)(const char *buf, unsigned long buf_len, __u64 flags, long *res) = (void *) 105;
 
 /*
  * bpf_strtoul
@@ -2565,7 +2582,7 @@ static int (*bpf_strtol)(const char *buf, unsigned long buf_len, __u64 flags, lo
  *
  * 	**-ERANGE** if resulting value was out of range.
  */
-static int (*bpf_strtoul)(const char *buf, unsigned long buf_len, __u64 flags, unsigned long *res) = (void *) 106;
+static long (*bpf_strtoul)(const char *buf, unsigned long buf_len, __u64 flags, unsigned long *res) = (void *) 106;
 
 /*
  * bpf_sk_storage_get
@@ -2609,7 +2626,7 @@ static void *(*bpf_sk_storage_get)(void *map, struct bpf_sock *sk, void *value, 
  *
  * 	**-ENOENT** if the bpf-local-storage cannot be found.
  */
-static int (*bpf_sk_storage_delete)(void *map, struct bpf_sock *sk) = (void *) 108;
+static long (*bpf_sk_storage_delete)(void *map, struct bpf_sock *sk) = (void *) 108;
 
 /*
  * bpf_send_signal
@@ -2628,7 +2645,7 @@ static int (*bpf_sk_storage_delete)(void *map, struct bpf_sock *sk) = (void *) 1
  *
  * 	**-EAGAIN** if bpf program can try again.
  */
-static int (*bpf_send_signal)(__u32 sig) = (void *) 109;
+static long (*bpf_send_signal)(__u32 sig) = (void *) 109;
 
 /*
  * bpf_tcp_gen_syncookie
@@ -2686,7 +2703,7 @@ static __s64 (*bpf_tcp_gen_syncookie)(struct bpf_sock *sk, void *iph, __u32 iph_
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_skb_output)(void *ctx, void *map, __u64 flags, void *data, __u64 size) = (void *) 111;
+static long (*bpf_skb_output)(void *ctx, void *map, __u64 flags, void *data, __u64 size) = (void *) 111;
 
 /*
  * bpf_probe_read_user
@@ -2697,7 +2714,7 @@ static int (*bpf_skb_output)(void *ctx, void *map, __u64 flags, void *data, __u6
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_probe_read_user)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 112;
+static long (*bpf_probe_read_user)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 112;
 
 /*
  * bpf_probe_read_kernel
@@ -2708,7 +2725,7 @@ static int (*bpf_probe_read_user)(void *dst, __u32 size, const void *unsafe_ptr)
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_probe_read_kernel)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 113;
+static long (*bpf_probe_read_kernel)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 113;
 
 /*
  * bpf_probe_read_user_str
@@ -2756,7 +2773,7 @@ static int (*bpf_probe_read_kernel)(void *dst, __u32 size, const void *unsafe_pt
  * 	including the trailing NUL character. On error, a negative
  * 	value.
  */
-static int (*bpf_probe_read_user_str)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 114;
+static long (*bpf_probe_read_user_str)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 114;
 
 /*
  * bpf_probe_read_kernel_str
@@ -2768,7 +2785,7 @@ static int (*bpf_probe_read_user_str)(void *dst, __u32 size, const void *unsafe_
  * 	On success, the strictly positive length of the string, including
  * 	the trailing NUL character. On error, a negative value.
  */
-static int (*bpf_probe_read_kernel_str)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 115;
+static long (*bpf_probe_read_kernel_str)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 115;
 
 /*
  * bpf_tcp_send_ack
@@ -2779,7 +2796,7 @@ static int (*bpf_probe_read_kernel_str)(void *dst, __u32 size, const void *unsaf
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_tcp_send_ack)(void *tp, __u32 rcv_nxt) = (void *) 116;
+static long (*bpf_tcp_send_ack)(void *tp, __u32 rcv_nxt) = (void *) 116;
 
 /*
  * bpf_send_signal_thread
@@ -2797,7 +2814,7 @@ static int (*bpf_tcp_send_ack)(void *tp, __u32 rcv_nxt) = (void *) 116;
  *
  * 	**-EAGAIN** if bpf program can try again.
  */
-static int (*bpf_send_signal_thread)(__u32 sig) = (void *) 117;
+static long (*bpf_send_signal_thread)(__u32 sig) = (void *) 117;
 
 /*
  * bpf_jiffies64
@@ -2830,7 +2847,7 @@ static __u64 (*bpf_jiffies64)(void) = (void *) 118;
  *
  * 	**-ENOENT** if architecture does not support branch records.
  */
-static int (*bpf_read_branch_records)(struct bpf_perf_event_data *ctx, void *buf, __u32 size, __u64 flags) = (void *) 119;
+static long (*bpf_read_branch_records)(struct bpf_perf_event_data *ctx, void *buf, __u32 size, __u64 flags) = (void *) 119;
 
 /*
  * bpf_get_ns_current_pid_tgid
@@ -2846,7 +2863,7 @@ static int (*bpf_read_branch_records)(struct bpf_perf_event_data *ctx, void *buf
  *
  * 	**-ENOENT** if pidns does not exists for the current task.
  */
-static int (*bpf_get_ns_current_pid_tgid)(__u64 dev, __u64 ino, struct bpf_pidns_info *nsdata, __u32 size) = (void *) 120;
+static long (*bpf_get_ns_current_pid_tgid)(__u64 dev, __u64 ino, struct bpf_pidns_info *nsdata, __u32 size) = (void *) 120;
 
 /*
  * bpf_xdp_output
@@ -2874,7 +2891,7 @@ static int (*bpf_get_ns_current_pid_tgid)(__u64 dev, __u64 ino, struct bpf_pidns
  * Returns
  * 	0 on success, or a negative error in case of failure.
  */
-static int (*bpf_xdp_output)(void *ctx, void *map, __u64 flags, void *data, __u64 size) = (void *) 121;
+static long (*bpf_xdp_output)(void *ctx, void *map, __u64 flags, void *data, __u64 size) = (void *) 121;
 
 /*
  * bpf_get_netns_cookie
@@ -2918,6 +2935,10 @@ static __u64 (*bpf_get_current_ancestor_cgroup_id)(int ancestor_level) = (void *
 /*
  * bpf_sk_assign
  *
+ * 	Helper is overloaded depending on BPF program type. This
+ * 	description applies to **BPF_PROG_TYPE_SCHED_CLS** and
+ * 	**BPF_PROG_TYPE_SCHED_ACT** programs.
+ *
  * 	Assign the *sk* to the *skb*. When combined with appropriate
  * 	routing configuration to receive the packet towards the socket,
  * 	will cause *skb* to be delivered to the specified socket.
@@ -2944,7 +2965,7 @@ static __u64 (*bpf_get_current_ancestor_cgroup_id)(int ancestor_level) = (void *
  * 	**-ESOCKTNOSUPPORT** if the socket type is not supported
  * 	(reuseport).
  */
-static int (*bpf_sk_assign)(struct __sk_buff *skb, struct bpf_sock *sk, __u64 flags) = (void *) 124;
+static long (*bpf_sk_assign)(void *ctx, struct bpf_sock *sk, __u64 flags) = (void *) 124;
 
 /*
  * bpf_ktime_get_boot_ns
@@ -2989,7 +3010,7 @@ static __u64 (*bpf_ktime_get_boot_ns)(void) = (void *) 125;
  *
  * 	**-EOVERFLOW** if an overflow happened: The same object will be tried again.
  */
-static int (*bpf_seq_printf)(struct seq_file *m, const char *fmt, __u32 fmt_size, const void *data, __u32 data_len) = (void *) 126;
+static long (*bpf_seq_printf)(struct seq_file *m, const char *fmt, __u32 fmt_size, const void *data, __u32 data_len) = (void *) 126;
 
 /*
  * bpf_seq_write
@@ -3003,7 +3024,7 @@ static int (*bpf_seq_printf)(struct seq_file *m, const char *fmt, __u32 fmt_size
  *
  * 	**-EOVERFLOW** if an overflow happened: The same object will be tried again.
  */
-static int (*bpf_seq_write)(struct seq_file *m, const void *data, __u32 len) = (void *) 127;
+static long (*bpf_seq_write)(struct seq_file *m, const void *data, __u32 len) = (void *) 127;
 
 /*
  * bpf_sk_cgroup_id
@@ -3049,16 +3070,15 @@ static __u64 (*bpf_sk_ancestor_cgroup_id)(struct bpf_sock *sk, int ancestor_leve
  * bpf_ringbuf_output
  *
  * 	Copy *size* bytes from *data* into a ring buffer *ringbuf*.
- * 	If BPF_RB_NO_WAKEUP is specified in *flags*, no notification of
- * 	new data availability is sent.
- * 	IF BPF_RB_FORCE_WAKEUP is specified in *flags*, notification of
- * 	new data availability is sent unconditionally.
+ * 	If **BPF_RB_NO_WAKEUP** is specified in *flags*, no notification
+ * 	of new data availability is sent.
+ * 	If **BPF_RB_FORCE_WAKEUP** is specified in *flags*, notification
+ * 	of new data availability is sent unconditionally.
  *
  * Returns
- * 	0, on success;
- * 	< 0, on error.
+ * 	0 on success, or a negative error in case of failure.
  */
-static void *(*bpf_ringbuf_output)(void *ringbuf, void *data, __u64 size, __u64 flags) = (void *) 130;
+static long (*bpf_ringbuf_output)(void *ringbuf, void *data, __u64 size, __u64 flags) = (void *) 130;
 
 /*
  * bpf_ringbuf_reserve
@@ -3075,10 +3095,10 @@ static void *(*bpf_ringbuf_reserve)(void *ringbuf, __u64 size, __u64 flags) = (v
  * bpf_ringbuf_submit
  *
  * 	Submit reserved ring buffer sample, pointed to by *data*.
- * 	If BPF_RB_NO_WAKEUP is specified in *flags*, no notification of
- * 	new data availability is sent.
- * 	IF BPF_RB_FORCE_WAKEUP is specified in *flags*, notification of
- * 	new data availability is sent unconditionally.
+ * 	If **BPF_RB_NO_WAKEUP** is specified in *flags*, no notification
+ * 	of new data availability is sent.
+ * 	If **BPF_RB_FORCE_WAKEUP** is specified in *flags*, notification
+ * 	of new data availability is sent unconditionally.
  *
  * Returns
  * 	Nothing. Always succeeds.
@@ -3089,10 +3109,10 @@ static void (*bpf_ringbuf_submit)(void *data, __u64 flags) = (void *) 132;
  * bpf_ringbuf_discard
  *
  * 	Discard reserved ring buffer sample, pointed to by *data*.
- * 	If BPF_RB_NO_WAKEUP is specified in *flags*, no notification of
- * 	new data availability is sent.
- * 	IF BPF_RB_FORCE_WAKEUP is specified in *flags*, notification of
- * 	new data availability is sent unconditionally.
+ * 	If **BPF_RB_NO_WAKEUP** is specified in *flags*, no notification
+ * 	of new data availability is sent.
+ * 	If **BPF_RB_FORCE_WAKEUP** is specified in *flags*, notification
+ * 	of new data availability is sent unconditionally.
  *
  * Returns
  * 	Nothing. Always succeeds.
@@ -3104,18 +3124,269 @@ static void (*bpf_ringbuf_discard)(void *data, __u64 flags) = (void *) 133;
  *
  * 	Query various characteristics of provided ring buffer. What
  * 	exactly is queries is determined by *flags*:
- * 	  - BPF_RB_AVAIL_DATA - amount of data not yet consumed;
- * 	  - BPF_RB_RING_SIZE - the size of ring buffer;
- * 	  - BPF_RB_CONS_POS - consumer position (can wrap around);
- * 	  - BPF_RB_PROD_POS - producer(s) position (can wrap around);
- * 	Data returned is just a momentary snapshots of actual values
+ *
+ * 	* **BPF_RB_AVAIL_DATA**: Amount of data not yet consumed.
+ * 	* **BPF_RB_RING_SIZE**: The size of ring buffer.
+ * 	* **BPF_RB_CONS_POS**: Consumer position (can wrap around).
+ * 	* **BPF_RB_PROD_POS**: Producer(s) position (can wrap around).
+ *
+ * 	Data returned is just a momentary snapshot of actual values
  * 	and could be inaccurate, so this facility should be used to
  * 	power heuristics and for reporting, not to make 100% correct
  * 	calculation.
  *
  * Returns
- * 	Requested value, or 0, if flags are not recognized.
+ * 	Requested value, or 0, if *flags* are not recognized.
  */
 static __u64 (*bpf_ringbuf_query)(void *ringbuf, __u64 flags) = (void *) 134;
+
+/*
+ * bpf_csum_level
+ *
+ * 	Change the skbs checksum level by one layer up or down, or
+ * 	reset it entirely to none in order to have the stack perform
+ * 	checksum validation. The level is applicable to the following
+ * 	protocols: TCP, UDP, GRE, SCTP, FCOE. For example, a decap of
+ * 	| ETH | IP | UDP | GUE | IP | TCP | into | ETH | IP | TCP |
+ * 	through **bpf_skb_adjust_room**\ () helper with passing in
+ * 	**BPF_F_ADJ_ROOM_NO_CSUM_RESET** flag would require one	call
+ * 	to **bpf_csum_level**\ () with **BPF_CSUM_LEVEL_DEC** since
+ * 	the UDP header is removed. Similarly, an encap of the latter
+ * 	into the former could be accompanied by a helper call to
+ * 	**bpf_csum_level**\ () with **BPF_CSUM_LEVEL_INC** if the
+ * 	skb is still intended to be processed in higher layers of the
+ * 	stack instead of just egressing at tc.
+ *
+ * 	There are three supported level settings at this time:
+ *
+ * 	* **BPF_CSUM_LEVEL_INC**: Increases skb->csum_level for skbs
+ * 	  with CHECKSUM_UNNECESSARY.
+ * 	* **BPF_CSUM_LEVEL_DEC**: Decreases skb->csum_level for skbs
+ * 	  with CHECKSUM_UNNECESSARY.
+ * 	* **BPF_CSUM_LEVEL_RESET**: Resets skb->csum_level to 0 and
+ * 	  sets CHECKSUM_NONE to force checksum validation by the stack.
+ * 	* **BPF_CSUM_LEVEL_QUERY**: No-op, returns the current
+ * 	  skb->csum_level.
+ *
+ * Returns
+ * 	0 on success, or a negative error in case of failure. In the
+ * 	case of **BPF_CSUM_LEVEL_QUERY**, the current skb->csum_level
+ * 	is returned or the error code -EACCES in case the skb is not
+ * 	subject to CHECKSUM_UNNECESSARY.
+ */
+static long (*bpf_csum_level)(struct __sk_buff *skb, __u64 level) = (void *) 135;
+
+/*
+ * bpf_skc_to_tcp6_sock
+ *
+ * 	Dynamically cast a *sk* pointer to a *tcp6_sock* pointer.
+ *
+ * Returns
+ * 	*sk* if casting is valid, or NULL otherwise.
+ */
+static struct tcp6_sock *(*bpf_skc_to_tcp6_sock)(void *sk) = (void *) 136;
+
+/*
+ * bpf_skc_to_tcp_sock
+ *
+ * 	Dynamically cast a *sk* pointer to a *tcp_sock* pointer.
+ *
+ * Returns
+ * 	*sk* if casting is valid, or NULL otherwise.
+ */
+static struct tcp_sock *(*bpf_skc_to_tcp_sock)(void *sk) = (void *) 137;
+
+/*
+ * bpf_skc_to_tcp_timewait_sock
+ *
+ * 	Dynamically cast a *sk* pointer to a *tcp_timewait_sock* pointer.
+ *
+ * Returns
+ * 	*sk* if casting is valid, or NULL otherwise.
+ */
+static struct tcp_timewait_sock *(*bpf_skc_to_tcp_timewait_sock)(void *sk) = (void *) 138;
+
+/*
+ * bpf_skc_to_tcp_request_sock
+ *
+ * 	Dynamically cast a *sk* pointer to a *tcp_request_sock* pointer.
+ *
+ * Returns
+ * 	*sk* if casting is valid, or NULL otherwise.
+ */
+static struct tcp_request_sock *(*bpf_skc_to_tcp_request_sock)(void *sk) = (void *) 139;
+
+/*
+ * bpf_skc_to_udp6_sock
+ *
+ * 	Dynamically cast a *sk* pointer to a *udp6_sock* pointer.
+ *
+ * Returns
+ * 	*sk* if casting is valid, or NULL otherwise.
+ */
+static struct udp6_sock *(*bpf_skc_to_udp6_sock)(void *sk) = (void *) 140;
+
+/*
+ * bpf_get_task_stack
+ *
+ * 	Return a user or a kernel stack in bpf program provided buffer.
+ * 	To achieve this, the helper needs *task*, which is a valid
+ * 	pointer to struct task_struct. To store the stacktrace, the
+ * 	bpf program provides *buf* with	a nonnegative *size*.
+ *
+ * 	The last argument, *flags*, holds the number of stack frames to
+ * 	skip (from 0 to 255), masked with
+ * 	**BPF_F_SKIP_FIELD_MASK**. The next bits can be used to set
+ * 	the following flags:
+ *
+ * 	**BPF_F_USER_STACK**
+ * 		Collect a user space stack instead of a kernel stack.
+ * 	**BPF_F_USER_BUILD_ID**
+ * 		Collect buildid+offset instead of ips for user stack,
+ * 		only valid if **BPF_F_USER_STACK** is also specified.
+ *
+ * 	**bpf_get_task_stack**\ () can collect up to
+ * 	**PERF_MAX_STACK_DEPTH** both kernel and user frames, subject
+ * 	to sufficient large buffer size. Note that
+ * 	this limit can be controlled with the **sysctl** program, and
+ * 	that it should be manually increased in order to profile long
+ * 	user stacks (such as stacks for Java programs). To do so, use:
+ *
+ * 	::
+ *
+ * 		# sysctl kernel.perf_event_max_stack=<new value>
+ *
+ * Returns
+ * 	A non-negative value equal to or less than *size* on success,
+ * 	or a negative error in case of failure.
+ */
+static long (*bpf_get_task_stack)(struct task_struct *task, void *buf, __u32 size, __u64 flags) = (void *) 141;
+
+/*
+ * bpf_load_hdr_opt
+ *
+ * 	Load header option.  Support reading a particular TCP header
+ * 	option for bpf program (BPF_PROG_TYPE_SOCK_OPS).
+ *
+ * 	If *flags* is 0, it will search the option from the
+ * 	sock_ops->skb_data.  The comment in "struct bpf_sock_ops"
+ * 	has details on what skb_data contains under different
+ * 	sock_ops->op.
+ *
+ * 	The first byte of the *searchby_res* specifies the
+ * 	kind that it wants to search.
+ *
+ * 	If the searching kind is an experimental kind
+ * 	(i.e. 253 or 254 according to RFC6994).  It also
+ * 	needs to specify the "magic" which is either
+ * 	2 bytes or 4 bytes.  It then also needs to
+ * 	specify the size of the magic by using
+ * 	the 2nd byte which is "kind-length" of a TCP
+ * 	header option and the "kind-length" also
+ * 	includes the first 2 bytes "kind" and "kind-length"
+ * 	itself as a normal TCP header option also does.
+ *
+ * 	For example, to search experimental kind 254 with
+ * 	2 byte magic 0xeB9F, the searchby_res should be
+ * 	[ 254, 4, 0xeB, 0x9F, 0, 0, .... 0 ].
+ *
+ * 	To search for the standard window scale option (3),
+ * 	the searchby_res should be [ 3, 0, 0, .... 0 ].
+ * 	Note, kind-length must be 0 for regular option.
+ *
+ * 	Searching for No-Op (0) and End-of-Option-List (1) are
+ * 	not supported.
+ *
+ * 	*len* must be at least 2 bytes which is the minimal size
+ * 	of a header option.
+ *
+ * 	Supported flags:
+ * 	* **BPF_LOAD_HDR_OPT_TCP_SYN** to search from the
+ * 	  saved_syn packet or the just-received syn packet.
+ *
+ *
+ * Returns
+ * 	>0 when found, the header option is copied to *searchby_res*.
+ * 	The return value is the total length copied.
+ *
+ * 	**-EINVAL** If param is invalid
+ *
+ * 	**-ENOMSG** The option is not found
+ *
+ * 	**-ENOENT** No syn packet available when
+ * 		    **BPF_LOAD_HDR_OPT_TCP_SYN** is used
+ *
+ * 	**-ENOSPC** Not enough space.  Only *len* number of
+ * 		    bytes are copied.
+ *
+ * 	**-EFAULT** Cannot parse the header options in the packet
+ *
+ * 	**-EPERM** This helper cannot be used under the
+ * 		   current sock_ops->op.
+ */
+static long (*bpf_load_hdr_opt)(struct bpf_sock_ops *skops, void *searchby_res, __u32 len, __u64 flags) = (void *) 142;
+
+/*
+ * bpf_store_hdr_opt
+ *
+ * 	Store header option.  The data will be copied
+ * 	from buffer *from* with length *len* to the TCP header.
+ *
+ * 	The buffer *from* should have the whole option that
+ * 	includes the kind, kind-length, and the actual
+ * 	option data.  The *len* must be at least kind-length
+ * 	long.  The kind-length does not have to be 4 byte
+ * 	aligned.  The kernel will take care of the padding
+ * 	and setting the 4 bytes aligned value to th->doff.
+ *
+ * 	This helper will check for duplicated option
+ * 	by searching the same option in the outgoing skb.
+ *
+ * 	This helper can only be called during
+ * 	BPF_SOCK_OPS_WRITE_HDR_OPT_CB.
+ *
+ *
+ * Returns
+ * 	0 on success, or negative error in case of failure:
+ *
+ * 	**-EINVAL** If param is invalid
+ *
+ * 	**-ENOSPC** Not enough space in the header.
+ * 		    Nothing has been written
+ *
+ * 	**-EEXIST** The option has already existed
+ *
+ * 	**-EFAULT** Cannot parse the existing header options
+ *
+ * 	**-EPERM** This helper cannot be used under the
+ * 		   current sock_ops->op.
+ */
+static long (*bpf_store_hdr_opt)(struct bpf_sock_ops *skops, const void *from, __u32 len, __u64 flags) = (void *) 143;
+
+/*
+ * bpf_reserve_hdr_opt
+ *
+ * 	Reserve *len* bytes for the bpf header option.  The
+ * 	space will be used by bpf_store_hdr_opt() later in
+ * 	BPF_SOCK_OPS_WRITE_HDR_OPT_CB.
+ *
+ * 	If bpf_reserve_hdr_opt() is called multiple times,
+ * 	the total number of bytes will be reserved.
+ *
+ * 	This helper can only be called during
+ * 	BPF_SOCK_OPS_HDR_OPT_LEN_CB.
+ *
+ *
+ * Returns
+ * 	0 on success, or negative error in case of failure:
+ *
+ * 	**-EINVAL** if param is invalid
+ *
+ * 	**-ENOSPC** Not enough space in the header.
+ *
+ * 	**-EPERM** This helper cannot be used under the
+ * 		   current sock_ops->op.
+ */
+static long (*bpf_reserve_hdr_opt)(struct bpf_sock_ops *skops, __u32 len, __u64 flags) = (void *) 144;
 
 

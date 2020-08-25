@@ -32,9 +32,6 @@
 #include "libbpf.h"
 #include "libbpf_internal.h"
 
-/* make sure libbpf doesn't use kernel-only integer typedefs */
-#pragma GCC poison u8 u16 u32 u64 s8 s16 s32 s64
-
 /*
  * When building perf, unistd.h is overridden. __NR_bpf is
  * required to be defined explicitly.
@@ -598,8 +595,22 @@ int bpf_link_create(int prog_fd, int target_fd,
 	attr.link_create.prog_fd = prog_fd;
 	attr.link_create.target_fd = target_fd;
 	attr.link_create.attach_type = attach_type;
+	attr.link_create.flags = OPTS_GET(opts, flags, 0);
+	attr.link_create.iter_info =
+		ptr_to_u64(OPTS_GET(opts, iter_info, (void *)0));
+	attr.link_create.iter_info_len = OPTS_GET(opts, iter_info_len, 0);
 
 	return sys_bpf(BPF_LINK_CREATE, &attr, sizeof(attr));
+}
+
+int bpf_link_detach(int link_fd)
+{
+	union bpf_attr attr;
+
+	memset(&attr, 0, sizeof(attr));
+	attr.link_detach.link_fd = link_fd;
+
+	return sys_bpf(BPF_LINK_DETACH, &attr, sizeof(attr));
 }
 
 int bpf_link_update(int link_fd, int new_prog_fd,

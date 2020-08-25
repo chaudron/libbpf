@@ -17,9 +17,6 @@
 #include "libbpf.h"
 #include "libbpf_internal.h"
 
-/* make sure libbpf doesn't use kernel-only integer typedefs */
-#pragma GCC poison u8 u16 u32 u64 s8 s16 s32 s64
-
 static bool grep(const char *buffer, const char *pattern)
 {
 	return !!strstr(buffer, pattern);
@@ -77,6 +74,9 @@ probe_load(enum bpf_prog_type prog_type, const struct bpf_insn *insns,
 	switch (prog_type) {
 	case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
 		xattr.expected_attach_type = BPF_CGROUP_INET4_CONNECT;
+		break;
+	case BPF_PROG_TYPE_SK_LOOKUP:
+		xattr.expected_attach_type = BPF_SK_LOOKUP;
 		break;
 	case BPF_PROG_TYPE_KPROBE:
 		xattr.kern_version = get_kernel_version();

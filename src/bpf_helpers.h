@@ -32,6 +32,9 @@
 #ifndef __always_inline
 #define __always_inline __attribute__((always_inline))
 #endif
+#ifndef __noinline
+#define __noinline __attribute__((noinline))
+#endif
 #ifndef __weak
 #define __weak __attribute__((weak))
 #endif
@@ -40,7 +43,7 @@
  * Helper macro to manipulate data structures
  */
 #ifndef offsetof
-#define offsetof(TYPE, MEMBER)  ((size_t)&((TYPE *)0)->MEMBER)
+#define offsetof(TYPE, MEMBER)	((unsigned long)&((TYPE *)0)->MEMBER)
 #endif
 #ifndef container_of
 #define container_of(ptr, type, member)				\
@@ -75,5 +78,6 @@ enum libbpf_tristate {
 };
 
 #define __kconfig __attribute__((section(".kconfig")))
+#define __ksym __attribute__((section(".ksyms")))
 
 #endif
